@@ -28,7 +28,7 @@ parser.add_argument('-o', '--hotseat', action='store_true')
 
 
 def beep():
-	print('\a')
+	print('\a', end='')
 
 
 class ChessGame:
@@ -105,7 +105,8 @@ class ChessGame:
 					selection = self.board[piece_selector.x][piece_selector.y]
 				else:
 					selection = self.board[7 - piece_selector.x][7 - piece_selector.y]
-				if selection and selection.color == self.color:
+				if (selection and selection.color == self.color and
+						(not self.in_check or selection.piece_type == 'king')):
 					move_selector.coords = piece_selector.coords
 					self.active_selector = move_selector
 				else:
@@ -133,6 +134,17 @@ class ChessGame:
 			selector.coords = new_coords
 		else:
 			beep()
+
+	@property
+	def in_check(self):
+		"""Check whether this side's king is under attack."""
+		for file, col in enumerate(self.board):
+			for rank, piece in enumerate(col):
+				if (piece and piece.piece_type == 'king'
+						and piece.color == self.color):
+					return chess.under_attack(self.board,
+								(file, rank), piece)
+		return False
 
 	def try_move(self, source, dest):
 		"""Attempt to execute a move and validate it with the other player."""

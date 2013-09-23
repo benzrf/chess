@@ -66,6 +66,28 @@ class Piece(object):
 		return "{} {}".format(self.color, self.piece_type)
 
 
+def under_attack(board, loc, spiece):
+	for file, col in enumerate(board):
+		for rank, piece in enumerate(col):
+			capture = Move(board, (file, rank), loc)
+			if (piece and piece.piece_type != 'king' and
+					capture.is_valid):
+				return True
+	my_color = spiece.color
+	file, rank = loc
+	for file_add in -1, 0, 1:
+		for rank_add in -1, 0, 1:
+			o_file = file + file_add
+			o_rank = rank + rank_add
+			if not -1 < o_file < 8 or not -1 < o_rank < 8:
+				continue
+			o_piece = board[o_file][o_rank]
+			if (o_piece and o_piece.color != my_color and
+					o_piece.piece_type == 'king'):
+				return True
+	return False
+
+
 class Move(object):
 	"""A move in a chess game."""
 
@@ -94,9 +116,9 @@ class Move(object):
 		dest = alpha.index(fields[1][0]), nums.index(fields[1][1])
 		return cls(board, source, dest)
 
-	def apply(self):
+	def apply(self, silenced=False):
 		"""Modify the board to the state it would be if this move were made."""
-		if not self.is_valid:
+		if not silenced and not self.is_valid:
 			warn('Applying invalid move')
 		if self.source_piece.piece_type in ('pawn', 'rook', 'king'):
 			self.source_piece.moved = True
@@ -146,9 +168,19 @@ class Move(object):
 		return False
 
 	@property
+	def into_check(self):
+		hypo_board = [col[:] for col in self.board]
+		hypo_move = Move(hypo_board, self.source, self.dest)
+		hypo_move.apply(silenced=True)
+		return under_attack(hypo_board, self.dest, self.source_piece)
+
+	@property
 	def is_valid(self):
-		"""Check whether this move is valid according to the rules of chess."""
-		delegate_response = getattr(self, 'is_valid_' + self.source_piece.piece_type)
+		"""Check whether this move is valid according to the rules of chess.
+
+		This property does NOT account for check lockdown!"""
+		delegate_response = getattr(self,
+					'is_valid_' + self.source_piece.piece_type)
 		into_self = bool(self.dest_piece) and not self.is_capture
 		return delegate_response and not into_self
 
@@ -179,24 +211,9 @@ class Move(object):
 	@property
 	def is_valid_king(self):
 		"""Check whether this move is valid, assuming the source piece is a king."""
-		for file, col in enumerate(self.board):
-			for rank, piece in enumerate(col):
-				capture = Move(self.board, (file, rank), self.dest)
-				if (piece and piece.piece_type != 'king' and
-						capture.is_valid):
-					return False
-		source_file, source_rank = self.source
-		my_color = self.source_piece.color
-		for file_add in -1, 0, 1:
-			for rank_add in -1, 0, 1:
-				o_file = source_file + file_add
-				o_rank = source_rank + rank_add
-				o_piece = self.board[o_file][o_rank]
-				if (o_piece and o_piece.color != my_color and
-						o_piece.piece_type == 'king'):
-					return False
 		return (self.file_dist in (0, 1) and
-			self.rank_dist in (0, 1))
+			self.rank_dist in (0, 1) and not
+			self.into_check)
 
 	@property
 	def is_valid_rook(self):
