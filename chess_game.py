@@ -19,11 +19,12 @@ bg_grid = [
 	[w, b, w, b, w, b, w, b],
 	[b, w, b, w, b, w, b, w]]
 
-PORT = 2009
-
-HOTSEAT = False
-
-parser = argparse.ArgumentParser(description='A chess game.')
+parser = argparse.ArgumentParser(description="lol sure")
+parser.add_argument('-p', '--port', type=int, default=2009,
+		help="The port to host on or connect to.")
+parser.add_argument('-c', '--connect', metavar="hostname",
+		help="Connect to a host.")
+parser.add_argument('-o', '--hotseat', action='store_true')
 
 
 def beep():
@@ -32,10 +33,11 @@ def beep():
 
 class ChessGame:
 	"""Represents a game state."""
-	def __init__(self, color, sock):
+	def __init__(self, color='white', sock=None, hotseat=False):
 		self.color = color
 		self.my_turn = color == 'white'
 		self.sock = sock
+		self.hotseat = hotseat
 
 		world = gridgame.World()
 		world.unit_x, world.unit_y = 64, 64
@@ -145,14 +147,14 @@ class ChessGame:
 
 	def confirm(self, move):
 		"""Confirm the validity of this move with the other game instance."""
-		if HOTSEAT:
+		if self.hotseat:
 			return True
 		self.sock.send(move.shorthand.encode('UTF-8') + b'\r\n')
 		return self.sock.recv(100).strip().decode() == 'OK'
 
 	def serve(self):
 		"""Wait for the other game instance to make a move, then validate it."""
-		if HOTSEAT:
+		if self.hotseat:
 			self.my_turn = True
 			self.color = 'black' if self.color == 'white' else 'white'
 			return
@@ -175,22 +177,21 @@ class ChessGame:
 
 def main():
 	"""Run the program."""
-	if HOTSEAT:
-		ChessGame('white', None).play()
+	opts = parser.parse_args()
+	if opts.hotseat:
+		ChessGame(hotseat=True).play()
 		return
-	host = input("Do you want to host the game? ").strip().lower() in ('y', 'yes')
-	if host:
+	if not opts.connect:
 		color = 'white'
 		ssock = socket.socket()
-		ssock.bind(('0.0.0.0', PORT))
+		ssock.bind(('0.0.0.0', opts.port))
 		ssock.listen(1)
 		print("Awaiting connection...")
 		sock, _ = ssock.accept()
 	else:
 		color = 'black'
-		server = input("What server do you want to connect to? ")
 		sock = socket.socket()
-		sock.connect((server, PORT))
+		sock.connect((opts.connect, opts.port))
 	print("Connection established! Starting game...")
 	ChessGame(color, sock).play()
 
