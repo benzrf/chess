@@ -81,9 +81,8 @@ class ChessGame:
 				self.rotate_board()
 			elif changed:
 				self.world.draw()
-			changed = bool(events)
 			if self.my_turn:
-				self.bus.pump(events)
+				changed = self.bus.pump(events)
 			else:
 				self.serve()
 
