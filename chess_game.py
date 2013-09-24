@@ -72,15 +72,18 @@ class ChessGame:
 
 		self.world.surf = scr
 
+		changed = True
 		while True:
-			if self.color == 'black':
+			events = pygame.event.get()
+			if changed and self.color == 'black':
 				self.rotate_board()
 				self.world.draw()
 				self.rotate_board()
-			else:
+			elif changed:
 				self.world.draw()
+			changed = bool(events)
 			if self.my_turn:
-				self.bus.pump(pygame.event.get())
+				self.bus.pump(events)
 			else:
 				self.serve()
 
