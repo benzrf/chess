@@ -28,7 +28,7 @@ parser.add_argument('-o', '--hotseat', action='store_true')
 
 
 def beep():
-	print('\a', end='')
+	print('\a')
 
 
 class ChessGame:
@@ -105,8 +105,7 @@ class ChessGame:
 					selection = self.board[piece_selector.x][piece_selector.y]
 				else:
 					selection = self.board[7 - piece_selector.x][7 - piece_selector.y]
-				if (selection and selection.color == self.color and
-						(not self.in_check or selection.piece_type == 'king')):
+				if selection and selection.color == self.color:
 					move_selector.coords = piece_selector.coords
 					self.active_selector = move_selector
 				else:
@@ -135,24 +134,13 @@ class ChessGame:
 		else:
 			beep()
 
-	@property
-	def in_check(self):
-		"""Check whether this side's king is under attack."""
-		for file, col in enumerate(self.board):
-			for rank, piece in enumerate(col):
-				if (piece and piece.piece_type == 'king'
-						and piece.color == self.color):
-					return chess.under_attack(self.board,
-								(file, rank), piece)
-		return False
-
 	def try_move(self, source, dest):
 		"""Attempt to execute a move and validate it with the other player."""
 		if self.color == 'black':
 			source = 7 - source[0], 7 - source[1]
 			dest = 7 - dest[0], 7 - dest[1]
 		move = chess.Move(self.board, source, dest)
-		if move.is_valid and self.confirm(move):
+		if move.is_valid() and self.confirm(move):
 			move.apply()
 			return True
 		return False
@@ -175,7 +163,7 @@ class ChessGame:
 			shorthand = self.sock.recv(100).strip().decode()
 			try:
 				move = chess.Move.from_shorthand(self.board, shorthand)
-				got_move = move.is_valid
+				got_move = move.is_valid()
 			except ValueError as e:
 				pass
 			if got_move:

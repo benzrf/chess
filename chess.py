@@ -71,7 +71,7 @@ def under_attack(board, loc, spiece):
 		for rank, piece in enumerate(col):
 			capture = Move(board, (file, rank), loc)
 			if (piece and piece.piece_type != 'king' and
-					capture.is_valid):
+					capture.is_valid(ignore_check=True)):
 				return True
 	my_color = spiece.color
 	file, rank = loc
@@ -118,7 +118,7 @@ class Move(object):
 
 	def apply(self, silenced=False):
 		"""Modify the board to the state it would be if this move were made."""
-		if not silenced and not self.is_valid:
+		if not silenced and not self.is_valid():
 			warn('Applying invalid move')
 		if self.source_piece.piece_type in ('pawn', 'rook', 'king'):
 			self.source_piece.moved = True
@@ -168,17 +168,38 @@ class Move(object):
 		return False
 
 	@property
+	def in_check(self):
+		"""Check whether the king of this side is under attack."""
+		for file, col in enumerate(self.board):
+			for rank, piece in enumerate(col):
+				if (piece and piece.piece_type == 'king'
+						and piece.color == self.source_piece.color):
+					return under_attack(self.board,
+								(file, rank), piece)
+		return False
+
+	@property
 	def into_check(self):
+		"""Check whether this move describes a move into check."""
 		hypo_board = [col[:] for col in self.board]
 		hypo_move = Move(hypo_board, self.source, self.dest)
 		hypo_move.apply(silenced=True)
 		return under_attack(hypo_board, self.dest, self.source_piece)
 
 	@property
-	def is_valid(self):
+	def resolves_check(self):
+		"""Check whether this move will cause the king of this side to no longer be in check."""
+		hypo_board = [col[:] for col in self.board]
+		hypo_move = Move(hypo_board, self.source, self.dest)
+		hypo_move.apply(silenced=True)
+		return not hypo_move.in_check
+
+	def is_valid(self, ignore_check=False):
 		"""Check whether this move is valid according to the rules of chess.
 
 		This property does NOT account for check lockdown!"""
+		if not ignore_check and self.in_check and not self.resolves_check:
+			return False
 		delegate_response = getattr(self,
 					'is_valid_' + self.source_piece.piece_type)
 		into_self = bool(self.dest_piece) and not self.is_capture
