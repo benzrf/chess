@@ -84,6 +84,11 @@ class ChessGame:
 			else:
 				self.serve()
 
+	@property
+	def checkmated(self):
+		#TODO: Implement a method to check if this player is in checkmate
+		pass
+
 	def rotate_board(self):
 		"""Rotate the board 180 degrees."""
 		for col in self.board:
