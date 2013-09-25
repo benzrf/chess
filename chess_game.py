@@ -4,6 +4,7 @@ import chess
 import gridgame
 import socket
 import argparse
+import sys
 
 b = gridgame.RGB(0, 0, 0)
 w = gridgame.RGB(255, 255, 255)
@@ -25,19 +26,21 @@ parser.add_argument('-p', '--port', type=int, default=2009,
 parser.add_argument('-c', '--connect', metavar="hostname",
 		help="Connect to a host.")
 parser.add_argument('-o', '--hotseat', action='store_true')
+parser.add_argument('-l', '--log', action='store_true')
 
 
 def beep():
-	print('\a')
+	print('\a', file=sys.stderr)
 
 
 class ChessGame:
 	"""Represents a game state."""
-	def __init__(self, color='white', sock=None, hotseat=False):
+	def __init__(self, color='white', sock=None, hotseat=False, log=False):
 		self.color = color
 		self.my_turn = color == 'white'
 		self.sock = sock
 		self.hotseat = hotseat
+		self.log = log
 
 		world = gridgame.World()
 		world.unit_x, world.unit_y = 64, 64
@@ -155,9 +158,14 @@ class ChessGame:
 	def confirm(self, move):
 		"""Confirm the validity of this move with the other game instance."""
 		if self.hotseat:
+			if self.log:
+				print(move.shorthand)
 			return True
 		self.sock.send(move.shorthand.encode('UTF-8') + b'\r\n')
-		return self.sock.recv(100).strip().decode() == 'OK'
+		valid = self.sock.recv(100).strip().decode() == 'OK'
+		if valid and self.log:
+			print(move.shorthand)
+		return valid
 
 	def serve(self):
 		"""Wait for the other game instance to make a move, then validate it."""
@@ -175,6 +183,8 @@ class ChessGame:
 				pass
 			if got_move:
 				self.sock.send(b'OK\r\n')
+				if self.log:
+					print(shorthand)
 			else:
 				self.sock.send(b'NO\r\n')
 		move.apply()
@@ -186,7 +196,7 @@ def main():
 	"""Run the program."""
 	opts = parser.parse_args()
 	if opts.hotseat:
-		ChessGame(hotseat=True).play()
+		ChessGame(hotseat=True, log=opts.log).play()
 		return
 	if not opts.connect:
 		color = 'white'
@@ -200,7 +210,7 @@ def main():
 		sock = socket.socket()
 		sock.connect((opts.connect, opts.port))
 	print("Connection established! Starting game...")
-	ChessGame(color, sock).play()
+	ChessGame(color, sock, log=opts.log).play()
 
 
 if __name__ == '__main__':
