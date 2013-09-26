@@ -193,9 +193,8 @@ class ChessGame:
 		self.my_turn = True
 
 
-def main():
+def run_game(opts):
 	"""Run the program."""
-	opts = parser.parse_args()
 	if opts.hotseat:
 		ChessGame(hotseat=True, log=opts.log).play()
 		return
@@ -213,7 +212,12 @@ def main():
 	print("Connection established! Starting game...")
 	ChessGame(color, sock, log=opts.log).play()
 
+def main_cli():
+	"""Get options from the command-line flags, then run the game."""
+	opts = parser.parse_args()
+	run_game(opts)
+
 
 if __name__ == '__main__':
-	main()
+	main_cli()
 
