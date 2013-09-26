@@ -1,4 +1,5 @@
 #!/usr/bin/python3.3
+from __future__ import print_function
 import pygame
 import chess
 import gridgame
