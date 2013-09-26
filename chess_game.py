@@ -21,7 +21,7 @@ bg_grid = [
 	[w, b, w, b, w, b, w, b],
 	[b, w, b, w, b, w, b, w]]
 
-parser = argparse.ArgumentParser(description="lol sure")
+parser = argparse.ArgumentParser(description="A chess game.")
 parser.add_argument('-p', '--port', type=int, default=2009,
 		help="The port to host on or connect to.")
 parser.add_argument('-c', '--connect', metavar="hostname",
