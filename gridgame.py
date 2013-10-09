@@ -258,14 +258,19 @@ class SimpleEventBus(object):
 	def remove_listener(self, listener, event):
 		self.listeners[event].remove(listener)
 
+	def pump_one(self, event):
+		pumped = False
+		for listener in self.listeners[event.type]:
+			pumped = True
+			if self.state is None:
+				listener(event)
+			else:
+				listener(event, self.state)
+		return pumped
+
 	def pump(self, elist):
 		pumped = False
 		for event in elist:
-			for listener in self.listeners[event.type]:
-				pumped = True
-				if self.state is None:
-					listener(event)
-				else:
-					listener(event, self.state)
+			pumped = pumped or pump_one(event)
 		return pumped
 
