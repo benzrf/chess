@@ -271,6 +271,7 @@ class SimpleEventBus(object):
 	def pump(self, elist):
 		pumped = False
 		for event in elist:
-			pumped = pumped or pump_one(event)
+			res = self.pump_one(event)
+			pumped = pumped or res
 		return pumped
 
