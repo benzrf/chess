@@ -232,9 +232,24 @@ class Move(object):
 	@property
 	def is_valid_king(self):
 		"""Check whether this move is valid, assuming the source piece is a king."""
-		return (self.file_dist in (0, 1) and
-			self.rank_dist in (0, 1) and not
-			self.into_check)
+		regular_move = (self.file_dist in (0, 1) and
+			self.rank_dist in (0, 1))
+		castle_move = (self.file_dist == 0 and
+			self.rank_dist == 2)
+		if regular_move:
+			return not self.into_check
+		elif castle_move and not self.source_piece.moved:
+			to_right = self.dest[0] > self.source[0]
+			end_coord = 7 if to_right else 0
+			rook = self.board[end_coord][self.source[1]]
+			if rook and rook.piece_type == 'rook' and not rook.moved:
+				addition = 1 if to_right else -1
+				middle_dest = self.dest[0] + addition, self.dest[1]
+				middle_move = Move(self.board, self.source, middle_dest)
+				return not any((self.in_check,
+						self.into_check,
+						middle_move.into_check))
+		return False
 
 	@property
 	def is_valid_rook(self):
